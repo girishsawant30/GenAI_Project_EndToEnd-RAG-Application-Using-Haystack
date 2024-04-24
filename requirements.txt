@@ -4,5 +4,7 @@ fastapi
 uvicorn
 python-dotenv
 pathlib
-
+pypdf
+sentence-transformers>=2.2.0
+python-multipart
 -e .

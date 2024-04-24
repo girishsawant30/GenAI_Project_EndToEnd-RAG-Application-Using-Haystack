@@ -8,11 +8,54 @@ from QASystem.ingestion import ingest
 from QASystem.utils import pinecone_config
 import os
 from dotenv import load_dotenv
+HF_TOKEN = os.getenv("HF_TOKEN")
+os.environ['HF_TOKEN'] = HF_TOKEN
 
-def get_result(query):
-    pass
+prompt_template = """Answer the following query based on the provided context. If the context does
+                     not include an answer, reply with 'I don't know'.\n
+                     Query: {{query}}
+                     Documents:
+                     {% for doc in documents %}
+                        {{ doc.content }}
+                     {% endfor %}
+                     Answer: 
+                  """
+
+def get_result(query):                  
+    query_pipeline = Pipeline()
+
+    query_pipeline.add_component("text_embedder", SentenceTransformersTextEmbedder())
+    query_pipeline.add_component("retriever", PineconeEmbeddingRetriever(document_store=pinecone_config()))
+    query_pipeline.add_component("prompt_builder", PromptBuilder(template=prompt_template))
+    query_pipeline.add_component("llm", HuggingFaceTGIGenerator(model="mistralai/Mistral-7B-Instruct-v0.2", token=Secret.from_token(HF_TOKEN)))
+
+
+
+    query_pipeline.connect("text_embedder.embedding", "retriever.query_embedding")
+    query_pipeline.connect("retriever.documents", "prompt_builder.documents")
+    query_pipeline.connect("prompt_builder", "llm")
+
+    query = query
+
+    results = query_pipeline.run(
+        {
+            "text_embedder": {"text": query},
+            "prompt_builder": {"query": query},
+        }
+    )
+
+    return results['llm']['replies'][0]
 
 if __name__ == '__main__':
-    get_result()
-
+    #loading the environment variable
+    '''load_dotenv()
+    PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+    HF_TOKEN = os.getenv("HF_TOKEN")
     
+    os.environ['PINECONE_API_KEY'] = PINECONE_API_KEY
+    os.environ['HF_TOKEN'] = HF_TOKEN
+    
+    print("Import Successfully")'''
+    
+    result=get_result("what is rag?")
+    print(result)

@@ -18,6 +18,12 @@ def ingest():
     indexing.add_component("embedder", SentenceTransformersDocumentEmbedder())
     indexing.add_component("writer", DocumentWriter(document_store))
 
+    indexing.connect("converter","splitter")
+    indexing.connect("splitter", "embedder")
+    indexing.connect("embedder", "writer")
+
+    indexing.run({"converter": {"sources": [Path("E:\\Girish Documents\\Study\\Data Science\\DataScience_GenAI_Study\\GenAI_Project_EndToEnd-RAG-Application-Using-Haystack-Mistral-FastAPI\\Data\\Retrieval-Augmented-Generation-for-NLP.pdf")]}})
+
 
 if __name__ == '__main__':
     document_store=pinecone_config()
